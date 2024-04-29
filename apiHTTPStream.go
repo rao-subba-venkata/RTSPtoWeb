@@ -108,6 +108,8 @@ func HTTPAPIServerStreamsMultiControlDelete(c *gin.Context) {
 //HTTPAPIServerStreamAdd function add new stream
 func HTTPAPIServerStreamAdd(c *gin.Context) {
 	var payload StreamST
+
+	// Parse payload
 	err := c.BindJSON(&payload)
 	if err != nil {
 		c.IndentedJSON(400, Message{Status: 0, Payload: err.Error()})
@@ -119,17 +121,31 @@ func HTTPAPIServerStreamAdd(c *gin.Context) {
 		}).Errorln(err.Error())
 		return
 	}
-	err = Storage.StreamAdd(c.Param("uuid"), payload)
-	if err != nil {
-		c.IndentedJSON(500, Message{Status: 0, Payload: err.Error()})
+
+	// Check whether the stream is present
+	streamStatus := AddOrUpdateLiveStreamStatus(c.Param("uuid"))
+
+	// Add only if streamStatus is add
+	if streamStatus == "add" {
+		err = Storage.StreamAdd(c.Param("uuid"), payload)
+		if err != nil {
+			c.IndentedJSON(500, Message{Status: 0, Payload: err.Error()})
+			log.WithFields(logrus.Fields{
+				"module": "http_stream",
+				"stream": c.Param("uuid"),
+				"func":   "HTTPAPIServerStreamAdd",
+				"call":   "StreamAdd",
+			}).Errorln(err.Error())
+			return
+		}
+	} else {
 		log.WithFields(logrus.Fields{
 			"module": "http_stream",
-			"stream": c.Param("uuid"),
 			"func":   "HTTPAPIServerStreamAdd",
 			"call":   "StreamAdd",
-		}).Errorln(err.Error())
-		return
+		}).Infoln("Stream is already added")
 	}
+
 	c.IndentedJSON(200, Message{Status: 1, Payload: Success})
 }
 
@@ -175,6 +191,19 @@ func HTTPAPIServerStreamDelete(c *gin.Context) {
 		return
 	}
 	c.IndentedJSON(200, Message{Status: 1, Payload: Success})
+}
+
+//HTTPAPIServerStreamDelete function delete stream
+func StreamDelete(uuid string) {
+	err := Storage.StreamDelete(uuid)
+	if err != nil {
+		log.WithFields(logrus.Fields{
+			"module": "http_stream",
+			"stream": uuid,
+			"func":   "HTTPAPIServerStreamDelete",
+			"call":   "StreamDelete",
+		}).Errorln(err.Error())
+	}
 }
 
 //HTTPAPIServerStreamDelete function reload stream

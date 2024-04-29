@@ -8,10 +8,8 @@ import (
 )
 
 type CameraStatus struct {
-	Cam1Active   bool      // Status of the camera1
-	Cam1Expiry   time.Time // Expiry timestamp of camera1
-	Cam2Active   bool
-	Cam2Expiry   time.Time
+	Active   bool      // Status of the camera1
+	Expiry   time.Time // Expiry timestamp of camera1
 }
 
 var (
@@ -19,68 +17,33 @@ var (
 	cameraMapLock sync.Mutex
 )
 
-func AddOrUpdateLiveStreamStatus(unitID string, camID string) string {
-	// Define retVal
-	var retVal = ""
+func AddOrUpdateLiveStreamStatus(camID string) string {
+	// Initialize return value
+	retVal := "updated"
 
 	// Lock before accessing the cameraMap
 	cameraMapLock.Lock()
 	defer cameraMapLock.Unlock()
 
 	// Check if the unitID entry exists in the map
-	status, exists := cameraMap[unitID]
+	status, exists := cameraMap[camID]
 	if !exists {
 		// If entry does not exist, initialize it with default values
 		status = CameraStatus{
-			Cam1Active: true,
-			Cam1Expiry: time.Now().Add(1 * time.Minute),
-			Cam2Active: false,
-			Cam2Expiry: time.Now().Add(1 * time.Minute),
+			Active: true,
+			Expiry: time.Now().Add(1 * time.Minute),
 		}
+
+		// Add code to start streaming
+		retVal = "add"
 	} else {
-		// Update the respective camera status based on camID
-		switch camID {
-		case "cam1":
-			if status.Cam1Active {
-				// If cam1 is already active, return no_op
-				retVal = "no_op"
-			} else {
-				// Activate cam1 and set expiry time
-				status.Cam1Active = true
-				status.Cam1Expiry = time.Now().Add(1 * time.Minute)
-
-				// Check if cam2 is active, return add_chan if true, otherwise return add_stream
-				if status.Cam2Active {
-					retVal = "add_chan"
-				} else {
-					retVal = "add_stream"
-				}
-			}
-		case "cam2":
-			if status.Cam2Active {
-				// If cam2 is already active, return no_op
-				retVal = "no_op"
-			} else {
-				// Activate cam2 and set expiry time
-				status.Cam2Active = true
-				status.Cam2Expiry = time.Now().Add(1 * time.Minute)
-
-				// Check if cam1 is active, return add_chan if true, otherwise return add_stream
-				if status.Cam1Active {
-					retVal = "add_chan"
-				} else {
-					retVal = "add_stream"
-				}
-			}
-		default:
-			retVal = "" // Invalid camID
-		}
+		status.Expiry = time.Now().Add(1 * time.Minute)
 	}
 
 	// Update the cameraMap entry with the modified status
-	cameraMap[unitID] = status
+	cameraMap[camID] = status
 
-	// Return the retVal
+	// Return the status
 	return retVal
 }
 
@@ -93,17 +56,10 @@ func monitorCameraStatus(stopCh <-chan struct{}) {
 			case <-ticker.C:
 					cameraMapLock.Lock() // Lock outside the loop
 					for camID, status := range cameraMap {
-							if time.Now().After(status.Cam1Expiry) && status.Cam1Active {
-									status.Cam1Active = false
-									cameraMap[camID] = status
-							}
-							if time.Now().After(status.Cam2Expiry) && status.Cam2Active {
-									status.Cam2Active = false
-									cameraMap[camID] = status
-							}
-							// Remove entry if both cameras are inactive
-							if !status.Cam1Active && !status.Cam2Active {
-									delete(cameraMap, camID)
+							// Delete the stream and entry from map, if expired
+							if time.Now().After(status.Expiry) {
+								StreamDelete(camID)
+								delete(cameraMap, camID)
 							}
 					}
 					cameraMapLock.Unlock() // Unlock outside the loop
