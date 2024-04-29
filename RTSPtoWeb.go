@@ -20,12 +20,20 @@ func main() {
 	signalChanel := make(chan os.Signal, 1)
 	done := make(chan bool, 1)
 	signal.Notify(signalChanel, syscall.SIGINT, syscall.SIGTERM)
+
+  // Create a stop channel for monitorCameraStatus
+  monitorStopCh := make(chan struct{})
+
+	// Start monitoring camera status
+	go monitorCameraStatus(monitorStopCh)
+
 	go func() {
 		sig := <-signalChanel
 		log.WithFields(logrus.Fields{
 			"module": "main",
 			"func":   "main",
 		}).Info("Server receive signal", sig)
+		close(monitorStopCh) // Close monitorStopCh to signal monitorCameraStatus to stop
 		done <- true
 	}()
 	log.WithFields(logrus.Fields{

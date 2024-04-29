@@ -2,7 +2,7 @@
   "server": {
     "debug": true,
     "http_debug": false,
-    "http_demo": true,
+    "http_demo": false,
     "http_dir": "web",
     "http_login": "demo",
     "http_password": "demo",
@@ -20,19 +20,7 @@
       "backend": "http://127.0.0.1/test.php"
     },
     "defaults": {
-      "audio": true
-    }
-  },
-  "streams": {
-    "27aec28e-6181-4753-9acd-0456a75f0289": {
-      "channels": {
-        "0": {
-          "url": "rtmp://171.25.232.10/12d525bc9f014e209c1280bc0d46a87e",
-          "debug": false,
-          "audio": true
-        }
-      },
-      "name": "111111111"
+      "audio": false
     }
   }
 }
