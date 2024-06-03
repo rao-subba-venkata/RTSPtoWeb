@@ -53,7 +53,7 @@ func (element *MuxerHLS) WritePacket(packet *av.Packet) {
 		// Wait for the first keyframe before initializing
 		return
 	}
-	if packet.IsKeyFrame && (element.CurrentSegment == nil || element.CurrentSegment.GetDuration().Seconds() >= 4) {
+	if packet.IsKeyFrame && (element.CurrentSegment == nil || element.CurrentSegment.GetDuration().Seconds() >= 2) {
 		if element.CurrentSegment != nil {
 			element.CurrentSegment.Close()
 			if len(element.Segments) > 6 {
@@ -78,7 +78,7 @@ func (element *MuxerHLS) UpdateIndexM3u8() {
 	var body string
 	var partTarget time.Duration
 	var segmentTarget time.Duration
-	segmentTarget = time.Second * 2
+	segmentTarget = time.Second * 1
 	for _, segmentKey := range element.SortSegments(element.Segments) {
 		for _, fragmentKey := range element.SortFragment(element.Segments[segmentKey].Fragment) {
 			if element.Segments[segmentKey].Fragment[fragmentKey].Finish {

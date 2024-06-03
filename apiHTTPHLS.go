@@ -45,7 +45,8 @@ func HTTPAPIServerStreamHLSM3U8(c *gin.Context) {
 			}).Errorln(err.Error())
 			return
 		}
-		if seq >= 5 {
+		// Serve the m3u8 file as soon as one MPEG-TS segment is ready
+		if seq >= 1 {
 			_, err := c.Writer.Write([]byte(index))
 			if err != nil {
 				c.IndentedJSON(400, Message{Status: 0, Payload: err.Error()})
